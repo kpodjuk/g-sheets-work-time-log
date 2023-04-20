@@ -28,57 +28,30 @@ const summaryIcon = '🕐';
 
 const debugDate = new Date(2023, 4, 16, 8, 0, 0);
 
-// how long for usual day of work
-const usualDayAtWorkHours = 8;
-const usualDayAtWorkMinutes = 30;
-const usualDayAtWorkMs = (usualDayAtWorkHours*60*60*1000)+usualDayAtWorkMinutes*60*1000;
-
-
-
-function isItStart(rowNumber, processedSheet) {
-  // check if it's start or end by checking icon in previous row
-
-  if (processedSheet.getRange(rowNumber, colIcon, 1, 1).getValue() == iconStart) {
-    return false;
-  }
-  else {
-    return true;
-  }
-}
-
 function onSheetUpdate(e) {
-  let logSheet = SpreadsheetApp.getActiveSheet();
-  if (logSheet.getIndex() == "1.0" && e.changeType == "INSERT_ROW") {
+  // spreadsheet - file itself
+  // sheet - one of many sheets in spreadsheet
+
+  let updatedSheet = SpreadsheetApp.getActiveSheet();
+  if (updatedSheet.getIndex() == "1.0" && e.changeType == "INSERT_ROW") {
+
     // it's new log entry!
     let currentDate = new Date();
-    let processedSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
+    let currentMonthSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
 
-    if (processedSheet != null) {
+    if (currentMonthSheet != null) {
       // sheet exists, append
       // calculate row
-      let rowNumber = processedSheet.getDataRange().getValues().length;
+      let rowNumber = currentMonthSheet.getDataRange().getValues().length;
 
-      if (isItStart(rowNumber, processedSheet)) {
-        workStart(processedSheet, rowNumber);
+      if (isItStart(rowNumber, currentMonthSheet)) {
+        workStart(currentMonthSheet, rowNumber);
       } else {
-        workEnd(processedSheet);
+        workEnd(currentMonthSheet);
       }
     } else {
       // sheet doesn't exist, create and then append
-      let currentDate = new Date();
-      SpreadsheetApp.getActiveSpreadsheet().insertSheet(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
-
-      // wait for sheet to be created
-      SpreadsheetApp.flush();
-
-      let processedSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
-
-      // set column width
-      processedSheet.setColumnWidth(colDate, 132);
-      processedSheet.setColumnWidth(colIcon, 25);
-      processedSheet.setColumnWidth(colStatus, 70);
-
-      workStart(processedSheet, 0);
+      workStart(createNewMonthSheet()); // add first log to 4th row 
     }
   } else {
     // ignore
@@ -86,64 +59,148 @@ function onSheetUpdate(e) {
   }
 }
 
+function createNewMonthSheet() {
+  let currentDate = new Date();
+  SpreadsheetApp.getActiveSpreadsheet().insertSheet(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
 
-function workStart(processedSheet, rowNumber) {
+  // wait for sheet to be created
+  SpreadsheetApp.flush();
+
+  let currentMonthSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
+
+  let timeColumnWidth = 60;
+  let textColumnWidth = 70;
+  let iconColumnWidth = 23;
+
+  // set column width
+  currentMonthSheet.setColumnWidth(1, textColumnWidth);
+  currentMonthSheet.setColumnWidth(2, timeColumnWidth);
+  currentMonthSheet.setColumnWidth(3, iconColumnWidth);
+  currentMonthSheet.setColumnWidth(4, textColumnWidth);
+  currentMonthSheet.setColumnWidth(5, timeColumnWidth);
+
+  currentMonthSheet.setColumnWidth(1 + 6, textColumnWidth);
+  currentMonthSheet.setColumnWidth(2 + 6, timeColumnWidth);
+  currentMonthSheet.setColumnWidth(3 + 6, iconColumnWidth);
+  currentMonthSheet.setColumnWidth(4 + 6, textColumnWidth);
+  currentMonthSheet.setColumnWidth(5 + 6, timeColumnWidth);
+
+  currentMonthSheet.getRange("H:H").setNumberFormat('HH:mm:ss');
+  currentMonthSheet.getRange("K:K").setNumberFormat('HH:mm:ss');
+  // currentMonthSheet.setColumnWidth(7, 132); // break time config column
+  // currentMonthSheet.setColumnWidth(10, 132); // work time config column
+
+  // add fields with configurable break time and work time
+  currentMonthSheet.getRange("A1").setValue("Config").setFontWeight('bold');
+  currentMonthSheet.getRange("A1:D1").mergeAcross().setHorizontalAlignment('center');
+
+  currentMonthSheet.getRange("A2").setValue("Desired break time:").setFontWeight('bold').setBackground("#ffd966");
+  currentMonthSheet.getRange("C2").setValue("0:30").setBackground("#ffe599").setFontStyle("italic");
+  currentMonthSheet.getRange("A2:B2").mergeAcross();
+  currentMonthSheet.getRange("C2:D2").mergeAcross();
+
+  currentMonthSheet.getRange("A3").setValue("Desired work time:").setFontWeight('bold').setBackground("#ffd966");
+  currentMonthSheet.getRange("C3").setValue("8:00").setBackground("#ffe599").setFontStyle("italic");
+  currentMonthSheet.getRange("A3:B3").mergeAcross();
+  currentMonthSheet.getRange("C3:D3").mergeAcross();
+
+  currentMonthSheet.appendRow([" "]);
+
+  return currentMonthSheet;
+}
+
+function workStart(currentMonthSheet) {
+
   Logger.log("Work start!");
   let currentDate = new Date();
 
-  Logger.log("usualDayAtWorkMs: "+usualDayAtWorkMs);
-
-
-
-  // append and stylize "header"
-  processedSheet.appendRow([currentDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' }), "Break: "]);
-
-  processedSheet.getRange(rowNumber + 1, 1, 1, rowWidth).mergeAcross();
-
-  processedSheet.getRange(rowNumber + 1, 1, 1, rowWidth).setFontWeight('bold').setHorizontalAlignment('center');
+  // append and stylize header for specific day
+  currentMonthSheet.appendRow([currentDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 11).mergeAcross().setFontWeight('bold').setHorizontalAlignment('center').setBorder(true, true, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID);
 
   // append actual log
-  processedSheet.appendRow(["Started: ", currentDate.toLocaleTimeString(), iconStart, "Leave at: ", new Date(currentDate.getTime() + usualDayAtWorkMs).toLocaleTimeString()]);
+  let desiredBreakTime = '"' + currentMonthSheet.getRange("C2").getDisplayValue() + '"';
+  let desiredWorkTime = '"' + currentMonthSheet.getRange("C3").getDisplayValue() + '"';
+  let leaveAtFormula = "=INDIRECT(ADDRESS(ROW();COLUMN()-3))+" + desiredBreakTime + "+" + desiredWorkTime;
+  currentMonthSheet.appendRow(["Started", currentDate.toLocaleTimeString(), iconStart, "Leave at", leaveAtFormula]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, rowWidth).setBackground(colorStart).setHorizontalAlignment('center');
 
-  processedSheet.getRange(processedSheet.getLastRow(), 1, 1, rowWidth).setBackground(colorStart);
+  // append log with rounded data
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setValues([["Started", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconStart, "Leave at", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")']]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setBackground(colorStart).setHorizontalAlignment('center');
+
+
+
+
+  notify("Started at " + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue() 
+  + " (" +  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2+6).getDisplayValue() + ")\n" + 
+  "Leave at " + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5).getDisplayValue() 
+  + " (" +  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5+6).getDisplayValue() + ")"
+
+  );
+}
+
+
+function notify(notification) {
+  SpreadsheetApp.getActiveSpreadsheet().getSheets()[0].getRange("F1").setValue(notification);
+  // Logger.log(SpreadsheetApp.getActiveSpreadsheet().getSheets()[0].getRange("F1").getValue());
+
+
 
 
 }
 
-function workEnd(processedSheet) {
-
+function workEnd(currentMonthSheet) {
   Logger.log("Work end!");
   let currentDate = new Date();
-
-
-
-  processedSheet.appendRow(["Stopped", currentDate.toLocaleTimeString(), iconEnd]);
-
-  processedSheet.getRange(processedSheet.getLastRow(), 1, 1, rowWidth).setBackground(colorEnd);
-
-  // it's end, summarize
-  // get start/end date from previous rows
-  let startDate = new Date(processedSheet.getRange(processedSheet.getLastRow() - 1, colDate).getValue());
-  let endDate = new Date(processedSheet.getRange(processedSheet.getLastRow(), colDate).getValue());
-
-  let elapsed = ((endDate.getTime() - startDate.getTime()) / 1000);
-  // processedSheet.appendRow(["Worked ", elapsed + "s", summaryIcon]);
-
-  const timeWorkedFormula = "=INDIRECT(ADDRESS(ROW()-1;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()))"; 
-  processedSheet.appendRow(["Worked ", timeWorkedFormula, summaryIcon]);
   
+  
+  // append ending date
+  currentMonthSheet.appendRow(["Stopped", currentDate.toLocaleTimeString(), iconEnd]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, rowWidth).setBackground(colorEnd).setHorizontalAlignment('center');
 
-  processedSheet.getRange(processedSheet.getLastRow(), 1, 1, rowWidth).setBackground(summaryColor);
+  let notifyString = "Stopped at " + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue();
 
-  processedSheet.appendRow([" "]);
+  // append rounded ending date
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setValues([["Stopped", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconEnd, "", ""]]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setBackground(colorEnd).setHorizontalAlignment('center');
+  notifyString += " (" +  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2+6).getDisplayValue() + ")\n";
+
+  // append time worked 
+  const timeWorkedFormula = "=INDIRECT(ADDRESS(ROW()-1;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()))";
+  currentMonthSheet.appendRow(["Worked", timeWorkedFormula, summaryIcon]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, rowWidth).setBackground(summaryColor).setHorizontalAlignment('center');
+  notifyString += "Worked for " + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue();
+
+  // append rounded time worked
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setValues([["Worked", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', summaryIcon, "", ""]]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setBackground(summaryColor).setHorizontalAlignment('center');
+  notifyString += " (" +  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2+6).getDisplayValue() + ")\n";
+
+  // append free space before new log 
+  currentMonthSheet.appendRow([" "]);
+
+  notify(notifyString);
+}
+
+function addNotificationContents(start) {
+
+  if (start) {
+    // work start notification
+
+  } else {
+    // work end notification
+  }
 
 }
 
+function isItStart(rowNumber, currentMonthSheet) {
+  // check if it's start or end by checking icon in previous row
 
-function getMonthName(monthNumber) {
-  switch (monthNumber) {
-    case 0:
-      return "January"
+  if (currentMonthSheet.getRange(rowNumber, colIcon, 1, 1).getValue() == iconStart) {
+    return false;
+  }
+  else {
+    return true;
   }
 }
-
