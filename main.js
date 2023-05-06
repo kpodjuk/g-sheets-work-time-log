@@ -118,6 +118,10 @@ function createNewMonthSheet() {
   currentMonthSheet.appendRow([" "]);
   currentMonthSheet.appendRow([" "]);
 
+  addBalanceStat();
+
+  var spreadsheet = SpreadsheetApp.getActive();
+  spreadsheet.getActiveSheet().setColumnWidth(6, 32);
 
   return currentMonthSheet;
 }
@@ -129,7 +133,7 @@ function addRaportButton(sheet) {
   var image = sheet.insertImage("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQg73FxMo2IUhWG4n28zAtBEprZuVn51qlhntW_qlFBln0OjnjhrRE1_OADbFV7YtDmxts&usqp=CAU", 1, 4); //change the URL to the image you prefer
 
   image.assignScript("generateReport"); //assign the function to the image
-  image.setAnchorCell(sheet.getRange('G1')).setHeight(95).setWidth(95);
+  image.setAnchorCell(sheet.getRange('P1')).setHeight(95).setWidth(95);
 
 }
 
@@ -148,10 +152,7 @@ function workStart(currentMonthSheet) {
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 11).mergeAcross().setFontWeight('bold').setHorizontalAlignment('center').setBorder(true, true, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID).setBackground("gray");
 
   // append actual log
-  let desiredBreakTime = '"' + currentMonthSheet.getRange("C2").getDisplayValue() + '"';
-  let desiredWorkTime = '"' + currentMonthSheet.getRange("C3").getDisplayValue() + '"';
-  let leaveAtFormula = "=INDIRECT(ADDRESS(ROW();COLUMN()-3))+" + desiredBreakTime + "+" + desiredWorkTime;
-  currentMonthSheet.appendRow(["Started", currentDate.toLocaleTimeString(), iconStart, "Leave at", leaveAtFormula]);
+  currentMonthSheet.appendRow(["Started", currentDate.toLocaleTimeString(), iconStart, "Leave at", "=INDIRECT(ADDRESS(ROW();COLUMN()-3))+INDIRECT(ADDRESS(ROW();COLUMN()+9))+INDIRECT(ADDRESS(ROW();COLUMN()+10))"]);
   // set background for 5 leftmost cells
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 5).setBackground(colorStart).setHorizontalAlignment('center');
 
@@ -162,11 +163,11 @@ function workStart(currentMonthSheet) {
   // currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, thisRowWidth-3).setBackground(colorStart).setHorizontalAlignment('center');
 
   // append log with rounded data
-  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, thisRowWidth).setHorizontalAlignment('center').setValues([["Started", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconStart, "Leave at", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', 
-  "", "", // gray column with data points
-   currentMonthSheet.getRange("C2").getDisplayValue(), 
-   currentMonthSheet.getRange("C3").getDisplayValue()
-   ]]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, thisRowWidth).setHorizontalAlignment('center').setValues([["Started", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconStart, "Leave at", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")',
+    "", "", // gray column with data points
+    currentMonthSheet.getRange("C2").getDisplayValue(),
+    currentMonthSheet.getRange("C3").getDisplayValue()
+  ]]);
   // currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, thisRowWidth-4).setBackground(colorStart).setHorizontalAlignment('center');
   // set background for cells after divide 
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, 5).setBackground(colorStart).setHorizontalAlignment('center')
@@ -207,15 +208,14 @@ function workEnd(currentMonthSheet) {
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setBackground(colorEnd).setHorizontalAlignment('center');
   notifyString += " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2 + 6).getDisplayValue() + ")\n";
 
-  // append time worked 
-  const timeWorkedFormula = '=IF(INDIRECT(ADDRESS(ROW()-1;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+12)) < 0; "00:00:00"; INDIRECT(ADDRESS(ROW()-1;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+12)))';
-  currentMonthSheet.appendRow(["Worked", timeWorkedFormula, summaryIcon]); // should somehow remove break time from total work time
+  // append time spent and worked 
+  currentMonthSheet.appendRow(["Time spent", '=INDIRECT(ADDRESS(ROW()-1;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()))', summaryIcon, "Worked", '=IF(INDIRECT(ADDRESS(ROW();COLUMN()-3))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+9)) <= 0;"00:00:00";INDIRECT(ADDRESS(ROW();COLUMN()-3))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+9)))']);
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, rowWidth).setBackground(summaryColor).setHorizontalAlignment('center');
   notifyString += "Worked for " + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue();
 
   // append rounded time worked
-  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setValues([["Worked", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', summaryIcon, "", ""]]);
-  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setBackground(summaryColor).setHorizontalAlignment('center');
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 1).setValues([["Time spent", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', summaryIcon, "Worked", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', "=(INDIRECT(ADDRESS(ROW();COLUMN()-4))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+3)))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+2))"]]);
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 1).setBackground(summaryColor).setHorizontalAlignment('center');
   notifyString += " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2 + 6).getDisplayValue() + ")\n";
 
   // append free space before new log 
@@ -246,5 +246,55 @@ function isItStart(rowNumber, currentMonthSheet) {
   }
 }
 
+function addBalanceStat() {
+  var spreadsheet = SpreadsheetApp.getActive();
+
+  spreadsheet.getRange('L1').activate();
+  spreadsheet.getCurrentCell().setValue('Balance');
+  spreadsheet.getActiveRangeList().setFontWeight('bold');
+  spreadsheet.getRange('L2').activate();
+  spreadsheet.getActiveSheet().setColumnWidth(12, 67);
+  spreadsheet.getActiveSheet().setColumnWidth(12, 60);
+  spreadsheet.getRange('K2').activate();
+  spreadsheet.getCurrentCell().setValue('low');
+  spreadsheet.getRange('K3').activate();
+  spreadsheet.getCurrentCell().setValue('high');
+  spreadsheet.getRange('K2').activate();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('right');
+  spreadsheet.getRange('K3').activate();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('right');
+  spreadsheet.getRange('L2').activate();
+  spreadsheet.getCurrentCell().setValue('-01:00:00');
+  spreadsheet.getRange('L3').activate();
+  spreadsheet.getCurrentCell().setValue('01:00:00');
+
+    spreadsheet.getRange('I1:J1').activate().mergeAcross();
+  spreadsheet.getCurrentCell().setValue('Balance');
+
+var conditionalFormatRules = spreadsheet.getActiveSheet().getConditionalFormatRules();
+  conditionalFormatRules.splice(conditionalFormatRules.length - 1, 1, SpreadsheetApp.newConditionalFormatRule()
+  .setRanges([spreadsheet.getRange('L2:L1000')])
+  .setGradientMinpointWithValue('#E67C73', SpreadsheetApp.InterpolationType.NUMBER, '-0,04')
+  .setGradientMidpointWithValue('#FFFFFF', SpreadsheetApp.InterpolationType.NUMBER, '0')
+  .setGradientMaxpointWithValue('#57BB8A', SpreadsheetApp.InterpolationType.NUMBER, '0,04')
+  .build());
+  spreadsheet.getActiveSheet().setConditionalFormatRules(conditionalFormatRules);
+
+conditionalFormatRules = spreadsheet.getActiveSheet().getConditionalFormatRules();
+  conditionalFormatRules.splice(conditionalFormatRules.length - 1, 1, SpreadsheetApp.newConditionalFormatRule()
+  .setRanges([spreadsheet.getRange('I2')])
+  .setGradientMinpointWithValue('#E67C73', SpreadsheetApp.InterpolationType.NUMBER, '-0,04')
+  .setGradientMidpointWithValue('#FFFFFF', SpreadsheetApp.InterpolationType.NUMBER, '0')
+  .setGradientMaxpointWithValue('#57BB8A', SpreadsheetApp.InterpolationType.NUMBER, '0,04')
+  .build());
+  spreadsheet.getActiveSheet().setConditionalFormatRules(conditionalFormatRules);
+
+  spreadsheet.getRange('L:L').setNumberFormat('[h]:mm:ss');
+  spreadsheet.getRange('I2').setNumberFormat('[h]:mm:ss');
+
+
+
+
+};
 
 
