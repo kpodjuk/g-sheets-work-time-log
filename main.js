@@ -66,8 +66,8 @@ function createNewMonthSheet() {
 
   let currentMonthSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }));
 
-  let timeColumnWidth = 60;
-  let textColumnWidth = 70;
+  let timeColumnWidth = 70;
+  let textColumnWidth = 80;
   let iconColumnWidth = 23;
 
   addRaportButton(currentMonthSheet);
@@ -85,9 +85,14 @@ function createNewMonthSheet() {
   currentMonthSheet.setColumnWidth(4 + 6, textColumnWidth);
   currentMonthSheet.setColumnWidth(5 + 6, timeColumnWidth);
   currentMonthSheet.setColumnWidth(6 + 6, timeColumnWidth);
-  currentMonthSheet.setColumnWidth(7 + 6, 1);
+  currentMonthSheet.setColumnWidth(7 + 6, 1); // M column
   currentMonthSheet.setColumnWidth(8 + 6, timeColumnWidth);
   currentMonthSheet.setColumnWidth(9 + 6, timeColumnWidth);
+  currentMonthSheet.setColumnWidth(6, 32);
+
+  // button description
+  // currentMonthSheet.getRange("P6").setValue("Generate month raport").setFontWeight('bold').setHorizontalAlignment('center');
+
 
   currentMonthSheet.getRange("H:H").setNumberFormat('HH:mm:ss');
   currentMonthSheet.getRange("K:K").setNumberFormat('HH:mm:ss');
@@ -122,9 +127,6 @@ function createNewMonthSheet() {
 
   addBalanceStat(currentMonthSheet);
 
-  var spreadsheet = SpreadsheetApp.getActive();
-  spreadsheet.getActiveSheet().setColumnWidth(6, 32);
-
   return currentMonthSheet;
 }
 
@@ -140,7 +142,67 @@ function addRaportButton(sheet) {
 }
 
 function generateReport() {
-  Logger.log("GENERATE REPORT!!!");
+
+  let ss = SpreadsheetApp.getActiveSheet();
+
+  // Detect which month/year is this sheet from
+  let sheetNameParts = ss.getName().split(" ");
+  let sheetDate = new Date(sheetNameParts[1] + sheetNameParts[0]);
+
+  // find rows containing data
+  const depth = 300;
+  // label max search depth, just in case
+  // ss.getRange(depth, 12).setValue("SEARCH ENDS HERE").setBackground("pink");
+
+  let allRows = [];
+
+  for (let i = 1; i < depth; i++) {
+    // iterate over rows in column P
+    searchRange = ss.getRange(i, 16, 1, 1);
+    if (searchRange.getValue() != "") {
+      // row not empty
+      rowData = ss.getRange(i, 16, 1, 5).getDisplayValues()[0]; // get data from row
+      allRows.push(rowData);
+    }
+  }
+
+  Logger.log("Data in raport:");
+  Logger.log(allRows);
+
+  // check if raport for that month doesn't already exist
+  let thisMonthRaportSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) + " RAPORT");
+  if (thisMonthRaportSheet == null) {
+    Logger.log("Creating new raport!");
+    // add new one
+    SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) + " RAPORT",
+      // reports go at the end
+      SpreadsheetApp.getActiveSpreadsheet().getNumSheets() + 1);
+  } else {
+    Logger.log("Regenerating already existing raport!");
+
+    // does, so delete old and insert new
+    SpreadsheetApp.getActiveSpreadsheet().deleteSheet(thisMonthRaportSheet);
+    SpreadsheetApp.flush();
+    // add new one
+    SpreadsheetApp.getActiveSpreadsheet().insertSheet(sheetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) + " RAPORT",
+      // reports go at the end
+      SpreadsheetApp.getActiveSpreadsheet().getNumSheets() + 1);
+  }
+
+
+  // wait for sheet to be created
+  SpreadsheetApp.flush();
+
+  let raportSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) + " RAPORT");
+
+  // fill with data
+  raportSheet.getRange(1, 1, allRows.length, 5).setValues(allRows);
+
+  // stylize
+  stylizeReport(allRows.length);
+
+
+  // Browser.msgBox("Month raport was properly generated!");
 }
 
 function workStart(currentMonthSheet) {
@@ -152,8 +214,14 @@ function workStart(currentMonthSheet) {
   currentMonthSheet.appendRow([currentDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })]);
   /// add color and border
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 11).mergeAcross().setFontWeight('bold').setHorizontalAlignment('center').setBorder(true, true, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_THICK).setBackground("gray");
-  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 15).setBorder(true, true, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.DOUBLE);
 
+  // Calendar week
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 12, 1, 1).setValue("CW" + getCalendarWeek(currentDate)).setFontWeight('bold').setHorizontalAlignment('center').setBackground("gray");
+
+  // nicely formatted date for raport
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 13, 1, 1).setValue(currentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })).setFontWeight('bold').setHorizontalAlignment('center').setBackground("gray");
+
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 15).setBorder(true, true, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.DOUBLE);
 
   // append actual log
   currentMonthSheet.appendRow(["Started", currentDate.toLocaleTimeString(), iconStart, "Leave at", "=INDIRECT(ADDRESS(ROW();COLUMN()-3))+INDIRECT(ADDRESS(ROW();COLUMN()+9))+INDIRECT(ADDRESS(ROW();COLUMN()+10))"]);
@@ -183,10 +251,10 @@ function workStart(currentMonthSheet) {
 
 
 
-  notify("Started at:\t\t\t\t" +
+  notify("Started at:\t\t" +
     currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2 + 6).getDisplayValue() +
     " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue() + ")\n" +
-    "Leave at:\t\t\t\t" +
+    "Leave at:\t\t" +
     currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5 + 6).getDisplayValue() +
     " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5).getDisplayValue() + ")"
 
@@ -216,9 +284,9 @@ function workEnd(currentMonthSheet) {
   // append rounded ending date
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setValues([["Stopped", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconEnd, "", ""]]);
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth).setBackground(colorEnd).setHorizontalAlignment('center');
-  
+
   // let notifyString = "Stopped at " + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue();
-  let notifyString = "Stopped at:\t\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2 + 6).getDisplayValue();
+  let notifyString = "Stopped at:\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2 + 6).getDisplayValue();
   notifyString += " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2).getDisplayValue() + ")\n";
 
   // append time spent and worked 
@@ -227,17 +295,19 @@ function workEnd(currentMonthSheet) {
 
   // append rounded time worked
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 9).setValues([["Time spent", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', summaryIcon, "Worked", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', "=(INDIRECT(ADDRESS(ROW();COLUMN()-4))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+3)))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+2))"
-    // "secret" time worked for easy sum of hours
-    , "", "", "", "", "", "", "", "=INDIRECT(ADDRESS(ROW();COLUMN()-9))"]]);
+    // formatted data for raport 
+    , "", "", "", "=INDIRECT(ADDRESS(ROW()-3;COLUMN()-3))", "=INDIRECT(ADDRESS(ROW()-2;COLUMN()-9))", "=INDIRECT(ADDRESS(ROW()-1;COLUMN()-10))", "=INDIRECT(ADDRESS(ROW()-2;COLUMN()-5))", "=INDIRECT(ADDRESS(ROW();COLUMN()-9))"]]);
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 1).setBackground(summaryColor).setHorizontalAlignment('center');
+
+
   // add line at the end of day
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 15).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.DOUBLE);
 
-  notifyString += "Worked for:\t\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5 + 6).getDisplayValue();
+  notifyString += "Worked for:\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5 + 6).getDisplayValue();
   notifyString += " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5).getDisplayValue() + ")\n";
 
-  notifyString += "Balance today:\t\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 12).getDisplayValue() + "\n";
-  notifyString += "Balance general:\t\t\t\t" + currentMonthSheet.getRange("I2:J2").getDisplayValue();
+  notifyString += "Balance today:\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 12).getDisplayValue();
+  notifyString += "Balance general:\t\t\t" + currentMonthSheet.getRange("I2:J2").getDisplayValue();
 
   // append free space before new log 
   currentMonthSheet.appendRow([" "]);
@@ -262,9 +332,9 @@ function addBalanceStat(currentMonthSheet) {
   var conditionalFormatRules = currentMonthSheet.getConditionalFormatRules();
 
   // scale with white in the middle
-    //   .setGradientMinpointWithValue('#E67C73', SpreadsheetApp.InterpolationType.NUMBER, '-0,12') // -03:00:00
-    // .setGradientMidpointWithValue('#FFFFFF', SpreadsheetApp.InterpolationType.NUMBER, '0')
-    // .setGradientMaxpointWithValue('#57BB8A', SpreadsheetApp.InterpolationType.NUMBER, '0,12')  // 03:00:00
+  //   .setGradientMinpointWithValue('#E67C73', SpreadsheetApp.InterpolationType.NUMBER, '-0,12') // -03:00:00
+  // .setGradientMidpointWithValue('#FFFFFF', SpreadsheetApp.InterpolationType.NUMBER, '0')
+  // .setGradientMaxpointWithValue('#57BB8A', SpreadsheetApp.InterpolationType.NUMBER, '0,12')  // 03:00:00
 
   // rule for day balance
   conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
@@ -282,7 +352,7 @@ function addBalanceStat(currentMonthSheet) {
     .setGradientMaxpointWithValue('#57BB8A', SpreadsheetApp.InterpolationType.NUMBER, '0,12')  // 03:00:00
 
 
-    
+
     .build());
   currentMonthSheet.setConditionalFormatRules(conditionalFormatRules);
 
@@ -305,4 +375,122 @@ function addBalanceStat(currentMonthSheet) {
 
 };
 
+function appendRow() {
+  var spreadsheet = SpreadsheetApp.getActive();
+
+  spreadsheet.insertRowsAfter(spreadsheet.getLastRow(), 1);
+  // spreadsheet.appendRow(["tests "]);
+
+
+};
+
+function getCalendarWeek(date) {
+  currentDate = date;
+  startDate = new Date(currentDate.getFullYear(), 0, 1);
+  var days = Math.floor((currentDate - startDate) /
+    (24 * 60 * 60 * 1000));
+
+  return Math.ceil(days / 7);
+  // Display the calculated result  
+  // console.log("Week number of " + currentDate +
+  // " is : " + weekNumber);
+
+}
+
+// super ugly macro recording but does the job
+function stylizeReport(numberOfRows) {
+
+  var spreadsheet = SpreadsheetApp.getActive();
+
+  spreadsheet.getActiveSheet().setColumnWidth(1, 95);
+  spreadsheet.getActiveSheet().setColumnWidth(2, 79);
+  spreadsheet.getActiveSheet().setColumnWidth(3, 80);
+  spreadsheet.getActiveSheet().setColumnWidth(4, 58);
+  spreadsheet.getActiveSheet().setColumnWidth(4, 58);
+
+
+  spreadsheet.getRange('1:1').activate();
+  spreadsheet.getActiveSheet().insertRowsBefore(spreadsheet.getActiveRange().getRow(), 1);
+  spreadsheet.getActiveRange().offset(0, 0, 1, spreadsheet.getActiveRange().getNumColumns()).activate();
+  spreadsheet.getRange('2:2').activate();
+  spreadsheet.getActiveSheet().insertRowsBefore(spreadsheet.getActiveRange().getRow(), 1);
+  spreadsheet.getActiveRange().offset(0, 0, 1, spreadsheet.getActiveRange().getNumColumns()).activate();
+  spreadsheet.getRange('A1:E1').activate()
+    .mergeAcross();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('center');
+  spreadsheet.getRange('A2').activate();
+  spreadsheet.getCurrentCell().setValue('Date');
+  spreadsheet.getRange('B2').activate();
+  spreadsheet.getCurrentCell().setValue('Start time');
+  spreadsheet.getRange('C2').activate();
+  spreadsheet.getCurrentCell().setValue('End time');
+  spreadsheet.getRange('D2').activate();
+  spreadsheet.getCurrentCell().setValue('Break time');
+  spreadsheet.getRange('E2').activate();
+  spreadsheet.getCurrentCell().setValue('Work time');
+  spreadsheet.getRange('A2:E1002').activate();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('center');
+  spreadsheet.getRange('A:A').activate();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('left');
+  spreadsheet.getRange('A2').activate();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('center');
+  spreadsheet.getRange('A2:E2').activate();
+  spreadsheet.getActiveRangeList().setFontWeight('bold');
+  spreadsheet.getRange('A1:E1').activate();
+  spreadsheet.getActiveRangeList().setHorizontalAlignment('center');
+  var conditionalFormatRules = spreadsheet.getActiveSheet().getConditionalFormatRules();
+  conditionalFormatRules.push(SpreadsheetApp.newConditionalFormatRule()
+    .setRanges([spreadsheet.getRange('A1:E1')])
+    .whenCellNotEmpty()
+    .setBackground('#B7E1CD')
+    .build());
+  spreadsheet.getActiveSheet().setConditionalFormatRules(conditionalFormatRules);
+  conditionalFormatRules = spreadsheet.getActiveSheet().getConditionalFormatRules();
+  conditionalFormatRules.splice(0, 1);
+  spreadsheet.getActiveSheet().setConditionalFormatRules(conditionalFormatRules);
+
+
+  // footer color
+  spreadsheet.getActiveSheet().getRange(2, 1, numberOfRows + 2, 5).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY);
+spreadsheet.getActiveSheet().getRange(2, 1, numberOfRows + 2, 5).setHorizontalAlignment('center')
+  var banding = spreadsheet.getRange('A2:E12').getBandings()[0];
+  banding.setHeaderRowColor('#bdbdbd')
+    .setFirstRowColor('#ffffff')
+    .setSecondRowColor('#f3f3f3')
+    .setFooterRowColor('#dedede');
+  spreadsheet.getRange('A1:E1').activate();
+  spreadsheet.getActiveRangeList().setFontWeight('bold')
+    .setBackground('#666666')
+    .setBackground('#b7b7b7')
+    .setBackground('#999999');
+
+  // get month from sheet name
+  let sheetNameParts = spreadsheet.getActiveSheet().getName().split(" ");
+  // part 0 and 1 = month+year
+  spreadsheet.getCurrentCell().setValue('Kamil Podjuk working time sheet for ' + sheetNameParts[0] + " " + sheetNameParts[1]);
+
+  spreadsheet.getActiveSheet().getRange(numberOfRows + 3, 4, 1, 1).setFontWeight('bold').setValue('Total:');
+  spreadsheet.getActiveSheet().getRange(numberOfRows + 3, 5, 1, 1).setFontStyle('italic').setValue('=SUM(E3:INDIRECT(ADDRESS(ROW()-1;COLUMN())))').setNumberFormat('[h]:mm:ss');;
+
+
+  spreadsheet.getRange('2:2').activate();
+  spreadsheet.getActiveSheet().insertRowsAfter(spreadsheet.getActiveRange().getLastRow(), 1);
+  spreadsheet.getActiveRange().offset(spreadsheet.getActiveRange().getNumRows(), 0, 1, spreadsheet.getActiveRange().getNumColumns()).activate();
+  spreadsheet.getRange('D2:D3').activate()
+    .mergeVertically();
+  spreadsheet.getActiveRangeList().setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP)
+    .setVerticalAlignment('middle');
+  spreadsheet.getRange('E2').activate();
+  spreadsheet.getRange('D2:D3').copyTo(spreadsheet.getActiveRange(), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  spreadsheet.getRange('C2').activate();
+  spreadsheet.getRange('D2:D3').copyTo(spreadsheet.getActiveRange(), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  spreadsheet.getRange('B2').activate();
+  spreadsheet.getRange('C2:C3').copyTo(spreadsheet.getActiveRange(), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  spreadsheet.getRange('A2').activate();
+  spreadsheet.getRange('B2:B3').copyTo(spreadsheet.getActiveRange(), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+
+  // tab color
+  spreadsheet.getActiveSheet().setTabColor('orange');
+
+};
 
