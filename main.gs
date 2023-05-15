@@ -306,7 +306,7 @@ function workEnd(currentMonthSheet) {
   notifyString += "Worked for:\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5 + 6).getDisplayValue();
   notifyString += " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5).getDisplayValue() + ")\n";
 
-  notifyString += "Balance today:\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 12).getDisplayValue();
+  notifyString += "Balance today:\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 12).getDisplayValue()+'\n';
   notifyString += "Balance general:\t\t\t" + currentMonthSheet.getRange("I2:J2").getDisplayValue();
 
   // append free space before new log 
