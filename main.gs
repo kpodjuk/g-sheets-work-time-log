@@ -118,7 +118,7 @@ function workStart(currentMonthSheet) {
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, 5).setBackground(colorStart).setHorizontalAlignment('center');
 
   // append log with rounded data
-  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, 9).setHorizontalAlignment('center').setValues([["Started", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconStart, "Leave at", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")',
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, 9).setHorizontalAlignment('center').setValues([["Started", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', iconStart, "Leave at", '=INDIRECT(ADDRESS(ROW();COLUMN()-3))+INDIRECT(ADDRESS(ROW();COLUMN()+3))+INDIRECT(ADDRESS(ROW();COLUMN()+4))',
     "", "", // gray column with data points
     currentMonthSheet.getRange("C2").getDisplayValue(),
     currentMonthSheet.getRange("C3").getDisplayValue()
@@ -157,7 +157,7 @@ function workEnd(currentMonthSheet) {
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1, 1, rowWidth).setBackground(summaryColor).setHorizontalAlignment('center');
 
   // append rounded time worked
-  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 9).setValues([["Time spent", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', summaryIcon, "Worked", '=MROUND(INDIRECT(ADDRESS(ROW();COLUMN()-6));"00:10:00")', "=(INDIRECT(ADDRESS(ROW();COLUMN()-4))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+3)))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+2))"
+  currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 9).setValues([["Time spent", '=INDIRECT(ADDRESS(ROW()-1;COLUMN()))-INDIRECT(ADDRESS(ROW()-2;COLUMN()))', summaryIcon, "Worked", '=IF(INDIRECT(ADDRESS(ROW();COLUMN()-3))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+3)) <= 0;"00:00:00";INDIRECT(ADDRESS(ROW();COLUMN()-3))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+3)))', "=(INDIRECT(ADDRESS(ROW();COLUMN()-4))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+3)))-INDIRECT(ADDRESS(ROW()-2;COLUMN()+2))"
     // formatted data for raport 
     , "", "", "", "=INDIRECT(ADDRESS(ROW()-3;COLUMN()-3))", "=INDIRECT(ADDRESS(ROW()-2;COLUMN()-9))", "=INDIRECT(ADDRESS(ROW()-1;COLUMN()-10))", "=INDIRECT(ADDRESS(ROW()-2;COLUMN()-5))", "=INDIRECT(ADDRESS(ROW();COLUMN()-9))"]]);
   currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 7, 1, rowWidth + 1).setBackground(summaryColor).setHorizontalAlignment('center');
