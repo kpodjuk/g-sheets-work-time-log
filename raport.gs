@@ -131,7 +131,7 @@ function stylizeReport(numberOfRows) {
   // tab color
   spreadsheet.getActiveSheet().setTabColor('orange');
 
-  addSendPdfButton(spreadsheet);
+  // addSendPdfButton(spreadsheet);
 
 };
 

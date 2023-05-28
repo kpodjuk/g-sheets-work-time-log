@@ -17,6 +17,7 @@ function sendPDF() {
   pdfUrl = pdf.getUrl();
   Logger.log("Created pdf: " + pdfUrl);
 
+  sendEmails(pdfUrl, sheetName);
 
 }
 
