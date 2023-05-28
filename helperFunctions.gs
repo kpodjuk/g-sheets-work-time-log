@@ -21,14 +21,6 @@ function isItStart(rowNumber, currentMonthSheet) {
   }
 }
 
-function addRaportButton(sheet) {
-  var image = sheet.insertImage("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQg73FxMo2IUhWG4n28zAtBEprZuVn51qlhntW_qlFBln0OjnjhrRE1_OADbFV7YtDmxts&usqp=CAU", 1, 4); //change the URL to the image you prefer
-
-  image.assignScript("generateReport"); //assign the function to the image
-  image.setAnchorCell(sheet.getRange('k1')).setHeight(95).setWidth(95);
-
-}
-
 function onSheetUpdate(e) {
   // spreadsheet - file itself
   // sheet - one of many sheets in spreadsheet
