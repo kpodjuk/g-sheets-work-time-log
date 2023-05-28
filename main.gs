@@ -132,8 +132,24 @@ function workStart(currentMonthSheet) {
     "Leave at:\t\t" +
     currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5 + 6).getDisplayValue() +
     " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5).getDisplayValue() + ")"
-
   );
+
+  // if it's first day of the week - make a spacing 
+  const spacingHeight = 100;
+  const calendarWeekColumn = 12;
+  const previousCalendarWeekRange = currentMonthSheet.getRange(currentMonthSheet.getLastRow()-6, calendarWeekColumn);
+  Logger.log(previousCalendarWeekRange.getDisplayValue());
+
+  Logger.log(getCalendarWeek(currentDate));
+
+
+  if("CW"+getCalendarWeek(currentDate) != previousCalendarWeekRange.getDisplayValue()){
+    // new calendar week
+    console.log("New CW!");
+    currentMonthSheet.setRowHeight(currentMonthSheet.getLastRow() - 2, spacingHeight);
+
+  };
+
 }
 
 function workEnd(currentMonthSheet) {
