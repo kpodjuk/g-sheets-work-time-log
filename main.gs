@@ -137,13 +137,13 @@ function workStart(currentMonthSheet) {
   // if it's first day of the week - make a spacing 
   const spacingHeight = 100;
   const calendarWeekColumn = 12;
-  const previousCalendarWeekRange = currentMonthSheet.getRange(currentMonthSheet.getLastRow()-6, calendarWeekColumn);
+  const previousCalendarWeekRange = currentMonthSheet.getRange(currentMonthSheet.getLastRow() - 6, calendarWeekColumn);
   Logger.log(previousCalendarWeekRange.getDisplayValue());
 
   Logger.log(getCalendarWeek(currentDate));
 
 
-  if("CW"+getCalendarWeek(currentDate) != previousCalendarWeekRange.getDisplayValue()){
+  if ("CW" + getCalendarWeek(currentDate) != previousCalendarWeekRange.getDisplayValue()) {
     // new calendar week
     console.log("New CW!");
     currentMonthSheet.setRowHeight(currentMonthSheet.getLastRow() - 2, spacingHeight);
@@ -187,10 +187,46 @@ function workEnd(currentMonthSheet) {
   notifyString += "Balance today:\t\t\t" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 12).getDisplayValue() + '\n';
   notifyString += "Balance general:\t\t\t" + currentMonthSheet.getRange("I2:J2").getDisplayValue();
 
-  // append free space before new log 
-  currentMonthSheet.appendRow([" "]);
+  // append place to leave comment 
+  addCommentField(currentMonthSheet);
 
   notify(notifyString);
+}
+
+function addCommentField(currentMonthSheet) {
+  const commentRowHeight = 55;
+  
+  currentMonthSheet.appendRow(["Comment"]);
+  currentMonthSheet.setRowHeight(currentMonthSheet.getLastRow(), commentRowHeight);
+
+  // range with "comment label"
+  let commentLabelRange = currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 1);
+
+  // range with actual comment
+  let commentTextRange = currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 2, 1, 10); // x and y switched
+
+  // Stylize comment label
+  commentLabelRange.setFontWeight('bold')
+    .setFontStyle('italic')
+    // darker gray bg
+    .setBackground('#d9d9d9')
+    // center
+    .setHorizontalAlignment('center')
+    // center vertically
+    .setVerticalAlignment('middle');
+
+
+  // Stylize comment text 
+  commentTextRange.setFontStyle('italic')
+    // whiter gray bg
+    .setBackground('#efefef')
+    // center
+    .setHorizontalAlignment('center')
+    // center vertically
+    .setVerticalAlignment('middle')
+    // merge
+    .mergeAcross();
+
 }
 
 function addBalanceStat(currentMonthSheet) {
