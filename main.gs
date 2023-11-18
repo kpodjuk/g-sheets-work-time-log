@@ -134,20 +134,19 @@ function workStart(currentMonthSheet) {
     " (" + currentMonthSheet.getRange(currentMonthSheet.getLastRow(), 5).getDisplayValue() + ")"
   );
 
-  // if it's first day of the week - make a spacing 
-  const spacingHeight = 100;
+}
+
+function makeSpacingForNewWeek(currentMonthSheet) {
+  // if it's first day of the week - make a spacing between the old week
   const calendarWeekColumn = 12;
   const previousCalendarWeekRange = currentMonthSheet.getRange(currentMonthSheet.getLastRow() - 6, calendarWeekColumn);
-  Logger.log(previousCalendarWeekRange.getDisplayValue());
-
-  Logger.log(getCalendarWeek(currentDate));
-
+  const spacingHeight = 100;
+  let currentDate = new Date();
 
   if ("CW" + getCalendarWeek(currentDate) != previousCalendarWeekRange.getDisplayValue()) {
-    // new calendar week
-    console.log("New CW!");
-    currentMonthSheet.setRowHeight(currentMonthSheet.getLastRow() - 2, spacingHeight);
-
+    // it's new calendar week
+    Logger.log("New week!");
+    currentMonthSheet.appendRow([" "]).setRowHeight(currentMonthSheet.getLastRow() - 2, spacingHeight);
   };
 
 }
@@ -190,12 +189,14 @@ function workEnd(currentMonthSheet) {
   // append place to leave comment 
   addCommentField(currentMonthSheet);
 
+  // makeSpacingForNewWeek(currentMonthSheet);
+
   notify(notifyString);
 }
 
 function addCommentField(currentMonthSheet) {
   const commentRowHeight = 55;
-  
+
   currentMonthSheet.appendRow(["Comment"]);
   currentMonthSheet.setRowHeight(currentMonthSheet.getLastRow(), commentRowHeight);
 
