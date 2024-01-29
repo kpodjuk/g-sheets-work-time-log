@@ -1,6 +1,6 @@
 function getCalendarWeek(date) {
-  currentDate = date;
-  startDate = new Date(currentDate.getFullYear(), 0, 1);
+  currentDate = new Date();
+  startDate = new Date(currentDate.getFullYear(), 0, 0);
   var days = Math.floor((currentDate - startDate) /
     (24 * 60 * 60 * 1000));
 
