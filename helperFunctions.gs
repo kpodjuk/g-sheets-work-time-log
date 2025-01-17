@@ -1,14 +1,20 @@
-function getCalendarWeek(date) {
-  currentDate = new Date();
-  startDate = new Date(currentDate.getFullYear(), 0, 0);
-  var days = Math.floor((currentDate - startDate) /
-    (24 * 60 * 60 * 1000));
+function getCalendarWeek(currentDate) {
+  // Create a copy of the date to avoid modifying the original
+  let date = new Date(currentDate);
 
-  return Math.ceil(days / 7);
-  // Display the calculated result  
-  // console.log("Week number of " + currentDate +
-  // " is : " + weekNumber);
+  // set to DEBUG date
+  // date = new Date('2025-01-19');
 
+  // Set the date to the nearest Thursday
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+
+  // Get the first day of the year
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+
+  // Calculate the difference in milliseconds and convert to weeks
+  const weekNumber = Math.ceil(((date - yearStart) / 86400000) / 7);
+
+  return String(weekNumber);
 }
 
 function isItStart(rowNumber, currentMonthSheet) {
